@@ -7,6 +7,12 @@ def logger(message):
 
 class Metadata:    
     def get_sonnar_id_from_title(self, title, threshold=80):
+        # Fetches all series from Sonarr API using the provided API key and URL.
+        # Finds the best matching series ID by comparing titles with a similarity threshold.
+        # Returns the matched series ID or None if no suitable match is found.
+        # Inputs needed: SONARR_URL (string), SONARR_API_KEY (string), and 'title' (string) to search for.
+
+
         url = f"{SONARR_URL}/api/v3/series"
         headers = {
             "X-Api-Key": SONARR_API_KEY
@@ -27,6 +33,11 @@ class Metadata:
         return None
 
     def add_to_sonarr(self, series_title, QUALITY_PROFILE_ID=4):
+        # Searches Sonarr for the series title and finds the best fuzzy match above a threshold.
+        # Sends a request to add the matched series to Sonarr with given quality profile and settings.
+        # Inputs needed: SONARR_API_KEY, SONARR_URL, ROOT_FOLDER, series_title (string), optional QUALITY_PROFILE_ID (int).
+
+
         headers = {
             'X-Api-Key': SONARR_API_KEY,
             'Content-Type': 'application/json'
@@ -74,6 +85,11 @@ class Metadata:
             logger(f"Failed to add series: {add_response.status_code} - {add_response.text}")
 
     def remove_from_sonarr(self, series_title):
+        # Finds the Sonarr series ID by title and deletes the series without removing files.
+        # Logs failure if the series is not found or deletion fails.
+        # Inputs needed: SONARR_API_KEY, SONARR_URL, series_title (string).
+
+
         headers = {
             "X-Api-Key": SONARR_API_KEY
         }
@@ -89,6 +105,11 @@ class Metadata:
             logger(f"Failed to remove '{series_title}': {response.status_code} - {response.text}")
 
     def get_metadata(self, title, season=None, episode=None):
+        # Retrieves metadata for a series, season, or episode; adds the series to Sonarr if missing.
+        # Removes the series afterward if it was added temporarily; returns detailed info or logs if not found.
+        # Inputs needed: SONARR_API_KEY, SONARR_URL, series title (string), optional season (int), optional episode (int).
+
+
         series_id = self.get_sonnar_id_from_title(title)
         
         series_added = False
