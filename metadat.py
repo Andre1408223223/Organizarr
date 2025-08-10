@@ -7,7 +7,7 @@ from fuzzywuzzy import fuzz
 def logger(message):
    print(message)
 
-class Metadata:
+class Metadata:    
     def get_sonnar_id_from_title(self, title, threshold=80):
         url = f"{SONARR_URL}/api/v3/series"
         headers = {
@@ -92,13 +92,83 @@ class Metadata:
 
     def get_metadata(self, title, season=None, episode=None):
         series_id = self.get_sonnar_id_from_title(title)
-
-        if not series_id:
-            self.add_to_sonarr(title)
-
         
+        series_added = False
+        if not series_id:
+            series_added = True
+            self.add_to_sonarr(title)
+            series_id = self.get_sonnar_id_from_title(title)
+            if not series_id: return None
 
+        #get metadata
+        url = f"{SONARR_URL}/api/v3/series/{series_id}"
+        response = requests.get(url, headers= {'X-Api-Key': SONARR_API_KEY,})
+        raw_metadata = response.json()
+        series_data = response.json()
+        metadata = None
+    
+        #episode
+        if season and episode:
+            url_episodes = f"{SONARR_URL}/api/v3/episode?seriesId={series_id}"
+            response_episodes = requests.get(url_episodes, headers= {'X-Api-Key': SONARR_API_KEY,})
+            response_episodes.raise_for_status()
+            episodes = response_episodes.json()
+
+            for ep in episodes:
+             if ep.get("seasonNumber") == season and ep.get("episodeNumber") == episode:
+                return {
+                    "title": ep.get("title", "Unknown Title"),
+                    "season": season,
+                    "episode": episode,
+                    "description": ep.get("overview", "No description available."),
+                    "airDate": ep.get("airDate", "Unknown Air Date"),
+                }
+             
+            logger(f"Episode S{season}E{episode} not found.")
+        
+        #season
+        elif episode is None and season is not None:
+            seasons = series_data.get("seasons", [])
+            for season_data in seasons:
+                season_num = season_data.get("seasonNumber")
+                if season_num == season:
+                    stats = season_data.get("statistics", {})
+                    metadata = {
+                        "season": season_num,
+                        "total_episodes": stats.get("totalEpisodeCount", 0),
+                    }
+                    return metadata
+            logger(f"Season {season} not found.")
+        
+        #show
+        else:
+         metadata = {
+           "title": raw_metadata.get('title', 'Unknown Title'),
+           "description": raw_metadata.get('overview', 'No description available.'),
+           "year": raw_metadata.get('year', 'Unknown Year'),
+           "genres": ', '.join(raw_metadata.get('genres', [])),
+           "status": raw_metadata.get('status', 'Unknown Status'),
+           "rating": raw_metadata.get('ratings', {}).get('value', 'N/A'),
+           "poster_url": next((img['remoteUrl'] for img in raw_metadata.get('images', []) if img.get('coverType') == 'poster'), None)
+        }
+         
+        if series_added:
+            self.remove_from_sonarr(title)
+
+        return metadata
+      
 
 if __name__ == "__main__":
     m = Metadata()
-    print(m.get_metadata("Solo leveling", season=1, episode=1))
+
+    # Show-level metadata
+    print("\n=== Show metadata ===")
+    print(m.get_metadata("Solo Leveling"))
+
+    # Season-level metadata
+    print("\n=== Season metadata ===")
+    print(m.get_metadata("Solo Leveling", season=1))
+
+    # Episode-level metadata
+    print("\n=== Episode metadata ===")
+    print(m.get_metadata("Solo Leveling", season=1, episode=1))
