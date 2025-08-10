@@ -1,8 +1,6 @@
-SONARR_URL = 'http://100.100.22.66:8989'
-SONARR_API_KEY = '96486d37113846e5bacb90fc761ad96b' 
-ROOT_FOLDER = "/home/andre/Shared/Entertainment_drive/Downloads/TV-Shows"
 import requests
 from fuzzywuzzy import fuzz
+from config import SONARR_URL, SONARR_API_KEY, ROOT_FOLDER
 
 def logger(message):
    print(message)

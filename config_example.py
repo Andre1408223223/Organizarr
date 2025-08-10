@@ -1,0 +1,3 @@
+SONARR_URL = ''
+SONARR_API_KEY = ''
+ROOT_FOLDER = ""
